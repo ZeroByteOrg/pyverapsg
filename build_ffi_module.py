@@ -20,7 +20,7 @@ void YM_reset();
 """)
 
 
-libraries = []
+libraries = ["x16sound.lib"]
 compiler_args = []
 macros =  []
 
@@ -34,10 +34,10 @@ if os.name == "posix":
 
 
 custom_sources = []
-verapsg_sources = ["opm.cpp", "vera_psg.c", "ymfm_opm.cpp"]
+x16sound_sources = ["x16sound.c"]
 
 
-ffibuilder.set_source("_verapsg", """
+ffibuilder.set_source("_x16sound", """
   
 #include <stdint.h>
 
@@ -51,7 +51,7 @@ void YM_reset();
 
 
 """,
-    sources=custom_sources + verapsg_sources,
+    sources=custom_sources + x16sound_sources,
     include_dirs=[],
     libraries=libraries,
     define_macros=macros,
