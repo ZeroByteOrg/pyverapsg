@@ -11,6 +11,9 @@ extern void YM_render(int16_t *stream, uint32_t samples);
 extern void YM_write(uint8_t reg, uint8_t val);
 extern void YM_reset();
 
+extern uint32_t YM_samplerate(uint32_t clock);
+
+/*
 void ym_render(int16_t *stream, uint32_t samples) {
 	YM_render(stream, samples);
 }
@@ -23,3 +26,4 @@ void ym_reset() {
 	YM_reset();
 }
 
+*/

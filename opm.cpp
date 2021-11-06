@@ -110,6 +110,10 @@ public:
 		return m_chip.read_status();
 	}
 
+	uint32_t sample_rate(uint32_t clock)
+	{
+		return m_chip.sample_rate(clock);
+	}
 
 private:
 	ymfm::ym2151              m_chip;
@@ -136,4 +140,9 @@ void YM_write(uint8_t reg, uint8_t val)
 void YM_reset()
 {
 	Ym_interface.reset();
+}
+
+uint32_t YM_samplerate(uint32_t clock)
+{
+	return Ym_interface.sample_rate(clock);
 }

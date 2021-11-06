@@ -2,7 +2,7 @@
 // Copyright (c) 2020 Frank van den Hoef
 // All rights reserved. License: 2-clause BSD
 
-// #include "vera_psg.h"
+#include "vera_psg.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>

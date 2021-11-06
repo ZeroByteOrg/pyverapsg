@@ -7,6 +7,6 @@ int main() {
 	std::cout << "Hello, world!";
 	YM_reset();
 	psg_reset();
-	ym_write(0x20,0);
+	YM_write(0x20,0);
 	return 0;
 }
