@@ -30,13 +30,13 @@ static struct channel channels[16];
 
 static uint8_t volume_lut[64] = {0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 8, 8, 9, 9, 10, 11, 11, 12, 13, 14, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 28, 29, 31, 33, 35, 37, 39, 42, 44, 47, 50, 52, 56, 59, 63};
 
-static void
+void
 psg_reset(void)
 {
 	memset(channels, 0, sizeof(channels));
 }
 
-static void
+void
 psg_writereg(uint8_t reg, uint8_t val)
 {
 	reg &= 0x3f;
@@ -102,7 +102,7 @@ render(int16_t *left, int16_t *right)
 	*right = r;
 }
 
-static void
+void
 psg_render(int16_t *buf, unsigned num_samples)
 {
 	while (num_samples--) {

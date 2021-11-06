@@ -34,18 +34,18 @@ def PSGrender_a(num_samples: int) -> array.array:
     return buffer
     
 def YMwrite(reg: int, value: int) -> None:
-    lib.YM_write(reg, value)
+    lib.ym_write(reg, value)
 
 
 def YMrender(num_samples: int) -> bytearray:
     buffer = bytearray(num_samples*4)
-    lib.YM_render(ffi.from_buffer("int16_t *", buffer), num_samples)
+    lib.ym_render(ffi.from_buffer("int16_t *", buffer), num_samples)
     return buffer
 
 
 def YMrender_a(num_samples: int) -> array.array:
     buffer = array.array('h', [0]*num_samples*2)
-    lib.YM_render(ffi.from_buffer("int16_t *", buffer, True), num_samples)
+    lib.ym_render(ffi.from_buffer("int16_t *", buffer, True), num_samples)
     return buffer
 
 
