@@ -10,10 +10,12 @@ from cffi import FFI
 
 ffibuilder = FFI()
 ffibuilder.cdef("""
-
 void psg_reset(void);
 void psg_writereg(uint8_t reg, uint8_t val);
 void psg_render(int16_t *buf, unsigned num_samples);
+void YM_render(int16_t *stream, uint32_t samples);
+void YM_write(uint8_t reg, uint8_t val);
+void YM_reset();
 
 """)
 
@@ -32,7 +34,7 @@ if os.name == "posix":
 
 
 custom_sources = []
-verapsg_sources = ["vera_psg.c"]
+verapsg_sources = ["opm.cpp", "vera_psg.c", "ymfm_opm.cpp"]
 
 
 ffibuilder.set_source("_verapsg", """
@@ -42,6 +44,11 @@ ffibuilder.set_source("_verapsg", """
 void psg_reset(void);
 void psg_writereg(uint8_t reg, uint8_t val);
 void psg_render(int16_t *buf, unsigned num_samples);
+void YM_render(int16_t *stream, uint32_t samples);
+void YM_write(uint8_t reg, uint8_t val);
+void YM_reset();
+
+
 
 """,
     sources=custom_sources + verapsg_sources,
