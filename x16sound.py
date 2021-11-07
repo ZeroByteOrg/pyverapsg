@@ -51,5 +51,4 @@ def YMrender_a(num_samples: int) -> array.array:
 def YMsamplerate(clockrate: int) -> int:
 	return lib.YM_samplerate(clockrate)
 
-
 reset()

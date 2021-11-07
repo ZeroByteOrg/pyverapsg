@@ -28,10 +28,11 @@
 #	define YM_DT2_D2R_OFFSET 0xC0
 #	define YM_D1L_RR_OFFSET 0xE0
 
+extern "C" {
 void YM_render(int16_t *stream, uint32_t samples);
 void YM_write(uint8_t reg, uint8_t val);
 void YM_reset();
-
+}
 
 
 #endif

@@ -14,7 +14,7 @@ dist:
 
 install: lib
 	pip install miniaudio
-	pip install .
+	pip install -v .
 	
 lib:
 	g++ -O3 -fPIC -c opm.cpp

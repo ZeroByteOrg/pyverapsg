@@ -6,13 +6,13 @@ import time
 def x16sound_stream() -> miniaudio.PlaybackCallbackGeneratorType:
     required_frames = yield b""  # generator initialization
     while True:
-        required_frames = yield x16sound.render(required_frames)
+        required_frames = yield x16sound.PSGrender(required_frames)
 
 
 def volumefade():
     for vol in range(63, 0, -1):
         print(vol, end=" ", flush=True)
-        x16sound.writereg(2, 0b11000000 | vol)
+        x16sound.PSGwrite(2, 0b11000000 | vol)
         time.sleep(0.05)
     print()
 
@@ -32,16 +32,16 @@ with miniaudio.PlaybackDevice(sample_rate=48000) as device:
 
     freq = x16sound.freqw(440)
     # I guess we should perhaps add constants to refer to the vera registers....
-    x16sound.writereg(0, freq & 255)
-    x16sound.writereg(1, freq >> 8)
-    x16sound.writereg(2, 255)
-    x16sound.writereg(3, 2 << 6)
+    x16sound.PSGwrite(0, freq & 255)
+    x16sound.PSGwrite(1, freq >> 8)
+    x16sound.PSGwrite(2, 255)
+    x16sound.PSGwrite(3, 2 << 6)
     print("triangle")
     volumefade()
-    x16sound.writereg(3, 1 << 6)
+    x16sound.PSGwrite(3, 1 << 6)
     print("sawtooth")
     volumefade()
-    x16sound.writereg(3, 3 << 6)
+    x16sound.PSGwrite(3, 3 << 6)
     print("noise")
     volumefade()
 

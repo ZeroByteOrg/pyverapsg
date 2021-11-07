@@ -24,7 +24,7 @@ public:
 			stream[i++] = ym0.data[1];
 		}
 	}
-	
+
 	void generate2(int16_t *stream, uint32_t samples, uint32_t buffer_sample_rate)
 	{
 		ymfm::ym2151::output_data ym0 = m_last_output[0];
@@ -87,7 +87,7 @@ public:
 		m_chip.write_address(addr);
 		m_chip.write_data(value, false);
 	}
-	
+
 	void reset()
 	{
 		m_chip.reset();
@@ -125,7 +125,7 @@ private:
 
 static ym2151_interface Ym_interface;
 
-
+extern "C" {
 void YM_render(int16_t *stream, uint32_t samples)
 {
 	//Ym_interface.generate(stream, samples, buffer_sample_rate);
@@ -145,4 +145,5 @@ void YM_reset()
 uint32_t YM_samplerate(uint32_t clock)
 {
 	return Ym_interface.sample_rate(clock);
+}
 }
