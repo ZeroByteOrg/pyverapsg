@@ -39,8 +39,6 @@ class psgchip:
 		lib.psg_reset()
 
 class ymchip:
-	#factor = 1.465
-	factor = 1.0
 	def __init__(self, clock=3579545):
 		self.clock = clock
 		self.reset()
@@ -61,7 +59,7 @@ class ymchip:
 		return buffer
 		
 	def samplerate(self) -> int:
-		return int(lib.YM_samplerate(self.clock) * self.factor)
+		return int(lib.YM_samplerate(self.clock))
 
 	def reset(self) -> None:
 		lib.YM_reset()
@@ -73,9 +71,9 @@ class system:
 	YM	= ymchip()
 	PSG = psgchip()
 	def __init__ (self):
-		self.YMaudio  = miniaudio.PlaybackDevice(sample_rate=self.YM.samplerate())
+		self.YMaudio  = miniaudio.PlaybackDevice(sample_rate=self.YM.samplerate(), buffersize_msec=50)
 #		self.PSGaudio = miniaudio.PlaybackDevice(sample_rate=48000)
-		self.PSGaudio = miniaudio.PlaybackDevice(sample_rate=48828)
+		self.PSGaudio = miniaudio.PlaybackDevice(sample_rate=48828, buffersize_msec=50)
 		
 	
 	def reset(self) -> None:

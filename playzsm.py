@@ -16,21 +16,32 @@ file.close()
 
 index = 2 + 16	# skip the 2-byte PRG header and ZSM header
 
-# doing it by brute force even though I know there exists a "Python"
-# way to do this easily.... just don't know what that is.
+# doing this by brute force even though I know there exists a "Python"
+# way to do this easily.... just don't know what that might be. ;)
 if ZSM[4] != 0xff:
 	loop = ZSM[2] + ZSM[3] * 256 + 0x2000 * ZSM[4]
 	loop += 2
 else:
 	loop = 0
 
+get_now=time.perf_counter
+#last = get_now()
+
+def mysleep(last, frames):
+    end = last + frames/60
+    while last < end:
+        last = get_now()
+
+
+
 x16 = x16sound.system()
 x16.startaudio()
 
 play = True
+last = get_now()
 while play:
 	command = ZSM[index]
-#	print ("ZSM[",hex(index),"] = ", hex(command))
+	print ("ZSM[",hex(index),"] = ", hex(command))
 	index += 1
 	cmd_bits = (command & 0xc0) >> 6
 	if cmd_bits == 0:
@@ -58,6 +69,8 @@ while play:
 			if delay > 0:
 #				print ("  DELAY = ", delay, "(",delay/60,"sec)")
 				time.sleep(delay / 60)
+#				mysleep(last,delay)
+				last = get_now()
 			else:
 				if loop > 0:
 #					print ("  LOOP")
