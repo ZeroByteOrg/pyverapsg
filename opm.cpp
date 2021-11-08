@@ -39,6 +39,7 @@ public:
 		}
 		// then generate any remaining samples
 		generate(stream, samples - i);
+		m_buffer_used = 0;
 	}
 	
 
@@ -46,7 +47,7 @@ public:
 	{
 		prerender(high_resolution_clock::now());
 		m_chip.write_address(addr);
-		m_chip.write_data(value, false);
+		m_chip.write_data(value, true); // bool = debug_write mode
 	}
 
 	void reset()
@@ -58,6 +59,28 @@ public:
 	uint32_t sample_rate(uint32_t clock)
 	{
 		return m_chip.sample_rate(clock);
+	}
+	
+	void debug(high_resolution_clock::time_point now)
+	{
+		double whole, frac;
+
+		// numsamples = samples-per-unit-time * delta-t
+		double dt = (duration_cast<duration<double>>(now - m_lastrender)).count();
+		frac = std::modf(m_chip_sample_rate * dt, &whole);
+		uint32_t numsamples = static_cast<uint32_t>(whole);
+		printf ("---------------------------\n");
+		printf ("rate    = %d\n", m_chip_sample_rate);
+		printf ("period  = %f\n", 1.0/m_chip_sample_rate);
+		printf ("dt      = %f\n", dt);
+		printf ("nSample = %d\n", numsamples);
+		printf ("frac    = %f\n", frac);
+		printf ("adjust  = %f sec\n", frac / m_chip_sample_rate);
+
+		// now set the timestamp of the last-rendered sample:
+		//duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+		//std::chrono::duration<double>(timeToSleep)
+		//dt = (frac / m_chip_sample_rate);
 	}
 
 /*
@@ -92,22 +115,27 @@ private:
 	
 	void prerender(high_resolution_clock::time_point now)
 	{
+		static float frameerror = 0;
+
 		double whole, frac;
 
 		ymfm::ym2151::output_data *buffer = &m_buffer[m_buffer_used];
 
-		// numsamples = samples-per-unit-time * delta-t
+		// numsamples = samples-per-unit-time * delta-t + int(frameerror)
 		double dt = (duration_cast<duration<double>>(now - m_lastrender)).count();
-		frac = std::modf(m_chip_sample_rate * dt, &whole);
-		uint32_t numsamples = static_cast<uint32_t>(whole);
+		frameerror += std::modf(m_chip_sample_rate * dt, &whole);
+		uint32_t numsamples = static_cast<uint32_t>(whole) + std::floor(frameerror);
+		frameerror -= std::floor(frameerror);
 		
-
 		// now set the timestamp of the last-rendered sample:
 		//duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 		//std::chrono::duration<double>(timeToSleep)
-		dt = (frac / m_chip_sample_rate);
-		m_lastrender = now - duration<double>dt;
+		// dt = (frac / m_chip_sample_rate);
+		
+		//m_lastrender = now - duration<double>dt;  // <---- want this
 
+		m_lastrender = now; // <--- accumulates error over time. Fix.
+		
 		if (numsamples > BUFFERSIZE - m_buffer_used) {
 			if (! m_warning) {
 				std::cerr << "Warning: YMFM Buffer Overflow" << std::endl;
@@ -124,16 +152,15 @@ private:
 			m_chip.generate(&m_buffer[m_buffer_used++],1);
 			--numsamples;
 		}
-		m_lastrender = now;
 	}
 
 	void generate(int16_t *stream, uint32_t samples)
 	{
 		ymfm::ym2151::output_data ym0;
-		for (uint32_t i = 0 ; i < samples*2 ; i++) {
+		for (uint32_t i = 0 ; i < samples*2 ; i+=2) {
 			m_chip.generate(&ym0, 1);
-			stream[i++] = ym0.data[0];
-			stream[i++] = ym0.data[1];
+			stream[i] = ym0.data[0];
+			stream[i+1] = ym0.data[1];
 		}
 	}
 };
@@ -160,5 +187,10 @@ extern "C" {
 	uint32_t YM_samplerate(uint32_t clock)
 	{
 		return Ym_interface.sample_rate(clock);
+	}
+	
+	void debug()
+	{
+		Ym_interface.debug(high_resolution_clock::now());
 	}
 }

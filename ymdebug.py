@@ -1,0 +1,26 @@
+import x16sound
+import time
+
+
+# Vibraphone 1 from Deflemask
+patch = bytes([0xe4,0x00,0x19,0x65,0x56,0x61,0x1e,0x41,0x23,0x0a,0x5f,0x9e,0xdb,0x9e,0x10,0x0c,0x07,0x05,0x00,0x0b,0x0a,0x0a,0xba,0xf6,0x85,0xf5])
+
+def patchYM():
+	x16.YM.write(0x20,patch[0])
+	x16.YM.write(0x38,patch[1])
+	reg = 0x40
+	for i in range(2, 25, 1):
+		x16.YM.write(reg,patch[i])
+		reg = reg + 0x08
+
+x16 = x16sound.system()
+x16.startaudio()
+
+print("sample rate is: ", x16.YM.samplerate())
+print("playing on:", x16.YMaudio.backend)
+
+#patchYM()
+x16.YM.debug()
+time.sleep(0.25)
+x16.YM.debug()
+x16.stopaudio()
