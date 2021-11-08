@@ -1,98 +1,66 @@
 #include "opm.h"
-
 #include "ymfm_opm.h"
-
 #include "ymfm_fm.ipp"
+#include <ctime>
+#include <iostream>
+#include <chrono>
+#include <cmath>
+
+// reference for timing = https://www.cplusplus.com/reference/chrono/high_resolution_clock/now/
+
+#define BUFFERSIZE	64000
+
+using namespace std::chrono;
 
 class ym2151_interface : public ymfm::ymfm_interface
 {
 public:
-	ym2151_interface()
+	ym2151_interface(uint32_t ymclock = 3579545)
 	    : m_chip(*this),
-	      m_timing_error(0)
+	      m_lastrender(high_resolution_clock::now()),
+	      m_buffer_used(0),
+	      m_chip_sample_rate(m_chip.sample_rate(ymclock)),
+	      m_warning(false)
 	{
-		m_chip_sample_rate = m_chip.sample_rate(3579545);
 	}
 
-	void generate(int16_t *stream, uint32_t samples)
+	void render(int16_t *stream, uint32_t samples)
 	{
+		m_lastrender = high_resolution_clock::now();
 		ymfm::ym2151::output_data ym0;
-		uint32_t i;
-		for (i = 0 ; i < samples*2 ; i++) {
-			m_chip.generate(&ym0, 1);
-			stream[i++] = ym0.data[0];
-			stream[i++] = ym0.data[1];
+
+		uint32_t i = 0;
+		// if buffer has data, send those first
+		while ((i < m_buffer_used) && (i < samples))
+		{
+			ym0 = m_buffer[i++];
+			*stream++ = ym0.data[0];
+			*stream++ = ym0.data[1];
 		}
+		// then generate any remaining samples
+		generate(stream, samples - i);
 	}
-
-	void generate2(int16_t *stream, uint32_t samples, uint32_t buffer_sample_rate)
-	{
-		ymfm::ym2151::output_data ym0 = m_last_output[0];
-		ymfm::ym2151::output_data ym1 = m_last_output[1];
-
-		if (m_timing_error == 0) {
-			ym0 = ym1;
-			m_chip.generate(&ym1, 1);
-		}
-
-		auto lerp = [](double v0, double v1, double x, double x1) -> double {
-			return v0 + (v1 - v0) * (x / x1);
-		};
-
-		const int16_t *stream_end = stream + (samples << 1);
-		if (buffer_sample_rate > m_chip_sample_rate) {
-			const uint32_t incremental_error = m_chip_sample_rate;
-			while (stream < stream_end) {
-				*stream = (int16_t)lerp(ym0.data[0], ym1.data[1], m_timing_error, buffer_sample_rate);
-				++stream;
-				*stream = (int16_t)lerp(ym0.data[1], ym1.data[1], m_timing_error, buffer_sample_rate);
-				++stream;
-
-				m_timing_error += incremental_error;
-
-				while (m_timing_error >= buffer_sample_rate) {
-					ym0 = ym1;
-					m_chip.generate(&ym1, 1);
-
-					m_timing_error -= buffer_sample_rate;
-				}
-			}
-			m_last_output[0] = ym0;
-			m_last_output[1] = ym1;
-		} else {
-			const uint32_t incremental_error = m_chip_sample_rate - buffer_sample_rate;
-			while (stream < stream_end) {
-				while (m_timing_error >= m_chip_sample_rate) {
-					ym0 = ym1;
-					m_chip.generate(&ym1, 1);
-					m_timing_error -= m_chip_sample_rate;
-				}
-				*stream = (int16_t)lerp(ym0.data[0], ym1.data[1], m_timing_error, m_chip_sample_rate);
-				++stream;
-				*stream = (int16_t)lerp(ym0.data[1], ym1.data[1], m_timing_error, m_chip_sample_rate);
-				++stream;
-
-				ym0 = ym1;
-				m_chip.generate(&ym1, 1);
-
-				m_timing_error += incremental_error;
-			}
-			m_last_output[0] = ym0;
-			m_last_output[1] = ym1;
-		}
-	}
+	
 
 	void write(uint8_t addr, uint8_t value)
 	{
+		prerender(high_resolution_clock::now());
 		m_chip.write_address(addr);
 		m_chip.write_data(value, false);
 	}
 
 	void reset()
 	{
+		prerender(high_resolution_clock::now());
 		m_chip.reset();
 	}
 
+	uint32_t sample_rate(uint32_t clock)
+	{
+		return m_chip.sample_rate(clock);
+	}
+
+/*
 	void debug_write(uint8_t addr, uint8_t value)
 	{
 		// do a direct write without triggering the busy timer
@@ -109,41 +77,88 @@ public:
 	{
 		return m_chip.read_status();
 	}
-
-	uint32_t sample_rate(uint32_t clock)
-	{
-		return m_chip.sample_rate(clock);
-	}
+*/
 
 private:
 	ymfm::ym2151              m_chip;
-	ymfm::ym2151::output_data m_last_output[2];
-
-	uint32_t m_timing_error;
+	uint32_t m_chip_clock_speed;
 	uint32_t m_chip_sample_rate;
+	high_resolution_clock::time_point m_lastrender;
+	bool m_warning;
+	
+	ymfm::ym2151::output_data m_buffer[BUFFERSIZE];
+	uint32_t                  m_buffer_size;
+	uint32_t                  m_buffer_used;
+	
+	void prerender(high_resolution_clock::time_point now)
+	{
+		double whole, frac;
+
+		ymfm::ym2151::output_data *buffer = &m_buffer[m_buffer_used];
+
+		// numsamples = samples-per-unit-time * delta-t
+		double dt = (duration_cast<duration<double>>(now - m_lastrender)).count();
+		frac = std::modf(m_chip_sample_rate * dt, &whole);
+		uint32_t numsamples = static_cast<uint32_t>(whole);
+		
+
+		// now set the timestamp of the last-rendered sample:
+		//duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+		//std::chrono::duration<double>(timeToSleep)
+		dt = (frac / m_chip_sample_rate);
+		m_lastrender = now - duration<double>dt;
+
+		if (numsamples > BUFFERSIZE - m_buffer_used) {
+			if (! m_warning) {
+				std::cerr << "Warning: YMFM Buffer Overflow" << std::endl;
+				m_warning = true;
+			}
+			numsamples = BUFFERSIZE - m_buffer_used;
+		}
+		else if (m_warning) {
+				std::cerr << "Info: YMFM Buffer Overflow clear" << std::endl;
+				m_warning = false;
+		}
+		
+		while (numsamples > 0) {
+			m_chip.generate(&m_buffer[m_buffer_used++],1);
+			--numsamples;
+		}
+		m_lastrender = now;
+	}
+
+	void generate(int16_t *stream, uint32_t samples)
+	{
+		ymfm::ym2151::output_data ym0;
+		for (uint32_t i = 0 ; i < samples*2 ; i++) {
+			m_chip.generate(&ym0, 1);
+			stream[i++] = ym0.data[0];
+			stream[i++] = ym0.data[1];
+		}
+	}
 };
 
 static ym2151_interface Ym_interface;
 
-extern "C" {
-void YM_render(int16_t *stream, uint32_t samples)
-{
-	//Ym_interface.generate(stream, samples, buffer_sample_rate);
-	Ym_interface.generate(stream, samples);
-}
+// present C-style accessor functions for python module
+extern "C" { 
+	void YM_render(int16_t *stream, uint32_t samples)
+	{
+		Ym_interface.render(stream, samples);
+	}
 
-void YM_write(uint8_t reg, uint8_t val)
-{
-	Ym_interface.write(reg, val);
-}
+	void YM_write(uint8_t reg, uint8_t val)
+	{
+		Ym_interface.write(reg, val);
+	}
 
-void YM_reset()
-{
-	Ym_interface.reset();
-}
+	void YM_reset()
+	{
+		Ym_interface.reset();
+	}
 
-uint32_t YM_samplerate(uint32_t clock)
-{
-	return Ym_interface.sample_rate(clock);
-}
+	uint32_t YM_samplerate(uint32_t clock)
+	{
+		return Ym_interface.sample_rate(clock);
+	}
 }

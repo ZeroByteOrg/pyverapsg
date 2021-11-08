@@ -1,17 +1,8 @@
-import miniaudio      # pip install miniaudio
 import x16sound
 import time
 import sys
 
-def psg_stream() -> miniaudio.PlaybackCallbackGeneratorType:
-    required_frames = yield b""  # generator initialization
-    while True:
-        required_frames = yield x16sound.PSGrender(required_frames)
 
-def ym_stream() -> miniaudio.PlaybackCallbackGeneratorType:
-	required_frames = yield b""  # generator initialization
-	while True:
-		required_frames = yield x16sound.YMrender(required_frames)
 
 fname = "BGM39.ZSM"
 try:
@@ -33,24 +24,8 @@ if ZSM[4] != 0xff:
 else:
 	loop = 0
 
-
-		
-
-
-
-YM = ym_stream()
-PSG = psg_stream()
-next(YM)  # start the generator
-next(PSG)  # start the generator
-
-factor = 1.465
-YMaudio = miniaudio.PlaybackDevice(sample_rate=int(x16sound.YMsamplerate(3579545)*factor))
-PSGaudio = miniaudio.PlaybackDevice(sample_rate=48000)
-YMaudio.start(YM)
-PSGaudio.start(PSG)
-
-print("sample rate is: ", x16sound.YMsamplerate(3579545))
-print("playing on:", YMaudio.backend)
+x16 = x16sound.system()
+x16.startaudio()
 
 play = True
 while play:
@@ -62,7 +37,7 @@ while play:
 		value = ZSM[index]
 		print ("  PSG write: ", hex(command), " <-- ", hex(value))
 		index += 1
-		x16sound.PSGwrite(command,value)
+		x16.PSG.write(command,value)
 	else:
 		if	cmd_bits == 1:
 			n = command & 0x3f
@@ -76,17 +51,17 @@ while play:
 					value = ZSM[index+1]
 					print("             ",hex(reg),",",hex(value))
 					index += 2
-					x16sound.YMwrite(reg,value)
+					x16.YM.write(reg,value)
 					n -= 1
 		else:
 			delay = command & 0x7f
 			if delay > 0:
 				print ("  DELAY = ", delay, "(",delay/60,"sec)")
 				time.sleep(delay / 60)
-				#sys.exit()
 			else:
 				if loop > 0:
 					print ("  LOOP")
 					index = loop
 				else:
 					play = False
+x16.stopaudio()

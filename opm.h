@@ -12,7 +12,7 @@
 // All Rights Reserved. License: 2-clause BSD
 //
 //---------------------------------------------
-
+/*
 #	define MAX_YM2151_VOICES (8)
 #	define MAX_YM2151_SLOTS (MAX_YM2151_VOICES * 4)
 
@@ -27,7 +27,7 @@
 #	define YM_A_D1R_OFFSET 0xA0
 #	define YM_DT2_D2R_OFFSET 0xC0
 #	define YM_D1L_RR_OFFSET 0xE0
-
+*/
 extern "C" {
 void YM_render(int16_t *stream, uint32_t samples);
 void YM_write(uint8_t reg, uint8_t val);
