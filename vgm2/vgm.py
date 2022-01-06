@@ -50,13 +50,16 @@ class VGMfile:
 	def seek(self, index):
 		self.pointer = min(max(index,self.offset),len(self.data)-1)
 		
-	def reset(self):
+	def rewind(self):
 		self.pointer = self.offset
 
 	def read1(self) -> int:
 		d = self.data[self.pointer]
 		self.skip(1)
 		return d
+		
+	def atloop(self) -> bool:
+		return self.pointer == self.loop
 
 VGM = VGMfile("ryu.vgz")
 print (len(VGM.data))

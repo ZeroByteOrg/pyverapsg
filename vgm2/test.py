@@ -1,6 +1,8 @@
 
 
 a = []
-a.extend([4])
-a.extend([5])
-print(a[1])
+a.append(2)
+a.append(4)
+a.append(6)
+print(a[0:4])
+#print(a)
